@@ -638,7 +638,10 @@
     });
     
     fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length) handleFile(e.target.files[0]);
+        if (e.target.files.length) {
+            handleFile(e.target.files[0]);
+            e.target.value = ''; // Reset input so the same file can be chosen again
+        }
     });
 
     // Toast System
@@ -661,7 +664,7 @@
     }
 
     async function handleFile(file) {
-        if (file.type !== 'application/pdf') {
+        if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
             showToast('Bitte eine PDF-Datei hochladen.');
             return;
         }
@@ -671,8 +674,18 @@
         loader.style.display = 'block';
 
         try {
-            const arrayBuffer = await file.arrayBuffer();
-            await parsePDF(arrayBuffer);
+            let buffer;
+            if (file.arrayBuffer) {
+                buffer = await file.arrayBuffer();
+            } else {
+                buffer = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(reader.error);
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+            await parsePDF(buffer);
             showPhase2();
             showToast('Dienstplan erfolgreich gelesen!', 'success');
         } catch (err) {
