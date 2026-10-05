@@ -424,6 +424,26 @@
             <button id="export-btn" class="btn">In Kalender exportieren (.ics)</button>
         </section>
     </main>
+
+    <footer style="text-align: center; margin-top: 32px; padding-bottom: 24px;">
+        <a href="#" id="open-legal" style="color: var(--text-muted); font-size: 12px; text-decoration: underline;">Impressum & Datenschutz</a>
+    </footer>
+</div>
+
+<!-- Legal Modal -->
+<div id="legal-modal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px;">
+    <div class="bento-box" style="width: 100%; max-height: 80vh; overflow-y: auto; margin: 0; position: relative;">
+        <button id="close-legal" style="position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted); line-height: 1;">&times;</button>
+        <h2 style="font-size: 18px; margin-bottom: 16px;">Impressum & Datenschutz</h2>
+        
+        <h3 style="font-size: 14px; margin-bottom: 4px;">Angaben gemäß § 5 TMG</h3>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Dies ist ein rein privates, nicht-kommerzielles Open-Source-Projekt für Kollegen.<br><strong>Verantwortlich:</strong><br>[Dein Vor- und Nachname]<br>[Straße und Hausnummer]<br>[PLZ und Ort]<br>E-Mail: [Deine E-Mail-Adresse]</p>
+
+        <h3 style="font-size: 14px; margin-bottom: 4px;">Datenschutzerklärung</h3>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;"><strong>1. Lokale Verarbeitung (100% Offline):</strong> Diese Web-Anwendung verarbeitet alle Dokumente (PDFs) vollständig offline und ausschließlich im Arbeitsspeicher (RAM) deines lokalen Browsers. Es findet <strong>kein Datentransfer</strong> an Server statt. Es werden keine Dienstpläne ins Internet hochgeladen.<br><br>
+        <strong>2. Web-Hosting:</strong> Die statischen Dateien der App werden über GitHub Pages bereitgestellt. Beim initialen Aufruf der Webseite verarbeitet der Hosting-Anbieter (GitHub Inc.) technisch notwendige Daten (z.B. deine IP-Adresse) zur Auslieferung der Dateien.<br><br>
+        <strong>3. Lokaler Speicher (LocalStorage):</strong> Die App speichert Einstellungen (wie angepasste Schichtnamen oder Wecker-Konfigurationen) lokal auf deinem Gerät im Browser-Speicher, um sie beim nächsten Besuch wiederherzustellen. Diese Daten verlassen das Gerät zu keinem Zeitpunkt.</p>
+    </div>
 </div>
 
 <div id="toast-container"></div>
@@ -465,6 +485,16 @@
     const previewMonth = document.getElementById('preview-month');
     const exportBtn = document.getElementById('export-btn');
     const installBtn = document.getElementById('install-btn');
+    const legalModal = document.getElementById('legal-modal');
+
+    // Legal Modal Logic
+    document.getElementById('open-legal').addEventListener('click', (e) => {
+        e.preventDefault();
+        legalModal.classList.remove('hidden');
+    });
+    document.getElementById('close-legal').addEventListener('click', () => {
+        legalModal.classList.add('hidden');
+    });
 
     // Service Worker Registration
     if ('serviceWorker' in navigator) {
