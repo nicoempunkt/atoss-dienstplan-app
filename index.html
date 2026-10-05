@@ -396,7 +396,10 @@
                 
                 <div class="form-group">
                     <label>Arbeitsort / Klinik (Optional)</label>
-                    <input type="text" id="location-input" class="form-control" placeholder="z.B. Station 4, Hauptgebäude">
+                    <div style="position: relative;">
+                        <input type="text" id="location-input" class="form-control" style="padding-right: 32px;" placeholder="z.B. Station 4, Hauptgebäude">
+                        <button id="clear-location" title="Feld leeren" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); font-size: 18px; font-weight: bold; cursor: pointer; padding: 4px;">&times;</button>
+                    </div>
                 </div>
 
                 <div class="flex justify-between align-center" style="margin-bottom: 12px; margin-top: 24px;">
@@ -607,7 +610,14 @@
 
 
     // Load persisted settings
-    locationInput.value = localStorage.getItem('atoss_location') || '';
+    const savedLocation = localStorage.getItem('atoss_location');
+    locationInput.value = savedLocation !== null ? savedLocation : 'Universitätsmedizin Mainz, Langenbeckstraße 1, 55131 Mainz';
+
+    document.getElementById('clear-location').addEventListener('click', () => {
+        locationInput.value = '';
+        locationInput.focus();
+    });
+
     if (localStorage.getItem('atoss_alarm_active') === 'false') {
         alarmToggle.checked = false;
         alarmOptions.style.opacity = '0.5';
