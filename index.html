@@ -610,12 +610,27 @@
     document.addEventListener('paste', (e) => {
         e.preventDefault(); // Prevent text from actually pasting into the div
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        let found = false;
+        let debugInfo = [];
+        
         for (let index in items) {
             const item = items[index];
-            if (item.kind === 'file') {
-                const file = item.getAsFile();
-                if (file) handleFile(file);
+            if (item && item.kind) {
+                debugInfo.push(`${item.kind} (${item.type})`);
+                if (item.kind === 'file') {
+                    const file = item.getAsFile();
+                    if (file) {
+                        found = true;
+                        handleFile(file);
+                        // don't break, just process the first file. actually break is safer.
+                        break;
+                    }
+                }
             }
+        }
+        
+        if (!found) {
+            showToast('Nichts eingefügt. Zwischenablage enthält: ' + (debugInfo.length ? debugInfo.join(', ') : 'Leer'), 'error');
         }
     });
 
