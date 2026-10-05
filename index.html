@@ -419,10 +419,11 @@
             </div>
 
             <div class="bento-box">
-                <div class="flex justify-between align-center" style="margin-bottom: 16px;">
+                <div class="flex justify-between align-center" style="margin-bottom: 12px;">
                     <h2 style="font-size: 18px;">Vorschau</h2>
                     <span id="preview-month" class="badge" style="background-color: var(--primary); color: white;"></span>
                 </div>
+                <div id="stats-container" style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px; background: var(--bg-subtle); padding: 12px; border-radius: 8px;"></div>
                 <div id="timeline" class="timeline"></div>
             </div>
 
@@ -435,7 +436,11 @@
         </section>
     </main>
 
-    <footer style="text-align: center; margin-top: 32px; padding-bottom: 24px;">
+    <footer style="text-align: center; margin-top: 32px; padding-bottom: 24px; display: flex; flex-direction: column; align-items: center; gap: 16px;">
+        <button id="share-btn" class="btn btn-outline" style="width: auto; padding: 12px 24px; font-size: 14px; border-radius: 999px;">
+            <svg style="width:16px;height:16px;margin-right:8px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8m-4-6l-4-4m0 0L8 6m4-4v12"></path></svg>
+            App empfehlen
+        </button>
         <a href="#" id="open-legal" style="color: var(--text-muted); font-size: 12px; text-decoration: underline;">Impressum & Datenschutz</a>
     </footer>
 </div>
@@ -548,6 +553,19 @@
     });
     document.getElementById('close-ios-install').addEventListener('click', () => {
         iosInstallModal.classList.add('hidden');
+    });
+
+    document.getElementById('share-btn').addEventListener('click', () => {
+        if (navigator.share) {
+            navigator.share({
+                title: 'Dienstplan Konverter',
+                text: 'Schau mal, hiermit kannst du deinen Dienstplan (ATOSS) in Sekunden in den Handy-Kalender importieren!',
+                url: window.location.href
+            }).catch(console.error);
+        } else {
+            navigator.clipboard.writeText(window.location.href);
+            showToast('Link kopiert!', 'success');
+        }
     });
 
     // PWA Install Logic
@@ -862,18 +880,43 @@
         });
 
         // Render Timeline Preview
-        timeline.innerHTML = '';
-        parsedShifts.forEach(shift => {
-            const div = document.createElement('div');
-            div.className = 'timeline-item';
-            const color = getShiftColor(shift.startH);
-            div.innerHTML = `
-                <div class="timeline-date">${shift.day}.</div>
-                <div class="timeline-time">${shift.originalTime}</div>
-                <div class="timeline-badge" style="background-color: ${color}">${shift.code}</div>
-            `;
-            timeline.appendChild(div);
-        });
+        function renderTimeline() {
+            timeline.innerHTML = '';
+            let early = 0, late = 0, night = 0;
+            
+            parsedShifts.forEach((shift, index) => {
+                const div = document.createElement('div');
+                div.className = 'timeline-item';
+                const color = getShiftColor(shift.startH);
+                
+                if (shift.startH < 10) early++;
+                else if (shift.startH >= 17) night++;
+                else late++;
+                
+                div.innerHTML = `
+                    <div class="timeline-date">${shift.day}.</div>
+                    <div class="timeline-time">${shift.originalTime}</div>
+                    <div class="timeline-badge" style="background-color: ${color}">${shift.code}</div>
+                    <button class="delete-shift-btn" data-index="${index}" style="margin-left:auto; background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer; padding: 0 8px;">&times;</button>
+                `;
+                timeline.appendChild(div);
+            });
+            
+            document.querySelectorAll('.delete-shift-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(e.target.dataset.index);
+                    parsedShifts.splice(idx, 1);
+                    renderTimeline();
+                });
+            });
+
+            const statsDiv = document.getElementById('stats-container');
+            if (statsDiv) {
+                statsDiv.innerHTML = `<strong>Monats-Statistik:</strong> ${parsedShifts.length} Schichten geplant.<br>
+                Davon ca. ☀️ ${early} Früh, 🏥 ${late} Spät, 🌙 ${night} Nacht.`;
+            }
+        }
+        renderTimeline();
     }
 
     exportBtn.addEventListener('click', () => {
