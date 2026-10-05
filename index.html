@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dienstplan Konverter</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    
+    <style>
+        :root {
+            /* Slate/Zinc Color Palette */
+            --bg-color: #f8fafc;
+            --surface-color: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --border: #e2e8f0;
+            --badge-bg: #dcfce7;
+            --badge-text: #166534;
+            --radius: 16px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            
+            /* Shift Colors */
+            --shift-early: #10b981; /* Emerald */
+            --shift-day: #3b82f6; /* Blue */
+            --shift-late: #f59e0b; /* Amber */
+            --shift-night: #8b5cf6; /* Violet */
+            --shift-default: #64748b;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #0f172a;
+                --surface-color: #1e293b;
+                --text-main: #f8fafc;
+                --text-muted: #94a3b8;
+                --primary: #3b82f6;
+                --primary-hover: #60a5fa;
+                --border: #334155;
+                --badge-bg: #064e3b;
+                --badge-text: #34d399;
+                --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.5);
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 24px 16px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            background-color: var(--badge-bg);
+            color: var(--badge-text);
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge svg {
+            width: 14px;
+            height: 14px;
+            margin-right: 4px;
+        }
+
+        .bento-box {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+            transition: all 0.2s ease;
+        }
+
+        /* Upload Area */
+        .dropzone {
+            border: 2px dashed var(--primary);
+            border-radius: var(--radius);
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            background-color: rgba(37, 99, 235, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        .dropzone:hover, .dropzone.dragover {
+            background-color: rgba(37, 99, 235, 0.1);
+        }
+
+        .dropzone svg {
+            width: 48px;
+            height: 48px;
+            color: var(--primary);
+            margin-bottom: 16px;
+        }
+
+        .dropzone p {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .dropzone span {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-muted);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+        }
+
+        /* Flex utilities */
+        .flex { display: flex; }
+        .justify-between { justify-content: space-between; }
+        .align-center { align-items: center; }
+        .gap-2 { gap: 8px; }
+        .gap-4 { gap: 16px; }
+
+        /* Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--border);
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* Button */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 16px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgb(37 99 235 / 0.3);
+        }
+        .btn:hover { background-color: var(--primary-hover); transform: translateY(-1px); }
+        .btn:active { transform: translateY(1px); }
+        .btn:disabled { background-color: var(--text-muted); cursor: not-allowed; transform: none; box-shadow: none;}
+
+        /* Install PWA Button */
+        #install-btn {
+            display: none;
+            margin-top: 16px;
+            background-color: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Mapping Item */
+        .mapping-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .mapping-code {
+            flex: 0 0 80px;
+            background-color: var(--bg-color);
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            border: 1px solid var(--border);
+        }
+        .mapping-input {
+            flex: 1;
+        }
+
+        /* Timeline Preview */
+        .timeline {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            background-color: var(--bg-color);
+        }
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+        .timeline-item:last-child { border-bottom: none; }
+        .timeline-date { flex: 0 0 60px; font-weight: 600; }
+        .timeline-time { flex: 1; color: var(--text-muted); }
+        .timeline-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .loader {
+            display: none;
+            border: 4px solid var(--border);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .hidden { display: none !important; }
+
+        /* Toast Notification */
+        #toast-container {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 9999;
+            pointer-events: none;
+            width: max-content;
+            max-width: 90vw;
+        }
+
+        .toast {
+            background-color: var(--surface-color);
+            color: var(--text-main);
+            padding: 12px 24px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--shift-late);
+            font-size: 14px;
+            font-weight: 600;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.error {
+            border-left-color: #ef4444;
+        }
+
+        .toast.success {
+            border-left-color: var(--shift-early);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Dienstplan Konverter</h1>
+        <div class="badge">
+            <svg fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+            100% Offline & DSGVO-sicher
+        </div>
+        <button id="install-btn">App installieren</button>
+    </header>
+
+    <main>
+        <!-- Phase 1: Upload -->
+        <section id="phase1" class="bento-box">
+            <input type="file" id="file-input" accept="application/pdf" class="hidden">
+            <div id="dropzone" class="dropzone">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                <p>PDF hier ablegen oder tippen</p>
+                <span>Unterstützt ATOSS / ASES Dienstpläne</span>
+            </div>
+            <div id="loader" class="loader"></div>
+            
+            <div id="debug-area" class="hidden" style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
+                <h3 style="font-size: 14px; margin-bottom: 8px; color: var(--text-muted);">Debug-Ansicht: PDF-Rohtext</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">Kopiere diesen Text und sende ihn an den Assistenten, damit der Parser korrigiert werden kann.</p>
+                <textarea id="debug-text" style="width: 100%; height: 200px; font-family: monospace; font-size: 11px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-color); color: var(--text-main); resize: vertical;" readonly></textarea>
+            </div>
+        </section>
+
+        <!-- Phase 2: Configuration -->
+        <section id="phase2" class="hidden">
+            <div class="bento-box">
+                <h2 style="font-size: 18px; margin-bottom: 16px;">Schicht-Zuordnung</h2>
+                <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 16px;">Passe die Namen der erkannten Schichten an. Die App merkt sich deine Eingaben für das nächste Mal.</p>
+                <div id="mapping-container"></div>
+            </div>
+
+            <div class="bento-box">
+                <h2 style="font-size: 18px; margin-bottom: 16px;">Kalender-Details</h2>
+                
+                <div class="form-group">
+                    <label>Arbeitsort / Klinik (Optional)</label>
+                    <input type="text" id="location-input" class="form-control" placeholder="z.B. Station 4, Hauptgebäude">
+                </div>
+
+                <div class="flex justify-between align-center" style="margin-bottom: 12px; margin-top: 24px;">
+                    <label style="font-weight: 600; margin: 0;">Wecker / Erinnerung</label>
+                    <label class="switch">
+                        <input type="checkbox" id="alarm-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div class="form-group" id="alarm-options">
+                    <select id="alarm-time" class="form-control">
+                        <option value="30">30 Minuten vorher</option>
+                        <option value="60">1 Stunde vorher</option>
+                        <option value="120" selected>2 Stunden vorher</option>
+                        <option value="custom">Individuell (Minuten)</option>
+                    </select>
+                    <input type="number" id="alarm-custom" class="form-control hidden" placeholder="Minuten" style="margin-top: 8px;">
+                </div>
+            </div>
+
+            <div class="bento-box">
+                <div class="flex justify-between align-center" style="margin-bottom: 16px;">
+                    <h2 style="font-size: 18px;">Vorschau</h2>
+                    <span id="preview-month" class="badge" style="background-color: var(--primary); color: white;"></span>
+                </div>
+                <div id="timeline" class="timeline"></div>
+            </div>
+
+            <button id="export-btn" class="btn">In Kalender exportieren (.ics)</button>
+        </section>
+    </main>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- PDF.js -->
+<script src="lib/pdf.min.js"></script>
+<script>
+    // Configure PDF.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
+
+    // State
+    let parsedShifts = [];
+    let shiftYear = new Date().getFullYear();
+    let shiftMonth = new Date().getMonth();
+    let debugText = '';
+    
+    // Default mappings for common ATOSS codes
+    const defaultMappings = {
+        'SIN': 'Spätdienst Intensiv',
+        'SIT': 'Spätdienst Tag',
+        'SRI': 'Regeldienst Intensiv',
+        'SKI': 'Kurzdienst Intensiv',
+        'FIN': 'Frühdienst Intensiv'
+    };
+
+    // DOM Elements
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('file-input');
+    const loader = document.getElementById('loader');
+    const phase1 = document.getElementById('phase1');
+    const phase2 = document.getElementById('phase2');
+    const mappingContainer = document.getElementById('mapping-container');
+    const locationInput = document.getElementById('location-input');
+    const alarmToggle = document.getElementById('alarm-toggle');
+    const alarmOptions = document.getElementById('alarm-options');
+    const alarmTime = document.getElementById('alarm-time');
+    const alarmCustom = document.getElementById('alarm-custom');
+    const timeline = document.getElementById('timeline');
+    const previewMonth = document.getElementById('preview-month');
+    const exportBtn = document.getElementById('export-btn');
+    const installBtn = document.getElementById('install-btn');
+
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('SW registered!', reg))
+            .catch(err => console.log('SW registration failed', err));
+    }
+
+    // PWA Install Prompt
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.style.display = 'inline-block';
+    });
+
+    installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                installBtn.style.display = 'none';
+            }
+            deferredPrompt = null;
+        }
+    });
+
+    // Load persisted settings
+    locationInput.value = localStorage.getItem('atoss_location') || '';
+    if (localStorage.getItem('atoss_alarm_active') === 'false') {
+        alarmToggle.checked = false;
+        alarmOptions.style.opacity = '0.5';
+        alarmOptions.style.pointerEvents = 'none';
+    }
+    const savedAlarmTime = localStorage.getItem('atoss_alarm_time');
+    if (savedAlarmTime) {
+        if (['30', '60', '120'].includes(savedAlarmTime)) {
+            alarmTime.value = savedAlarmTime;
+        } else {
+            alarmTime.value = 'custom';
+            alarmCustom.classList.remove('hidden');
+            alarmCustom.value = savedAlarmTime;
+        }
+    }
+
+    // Event Listeners for UI
+    alarmToggle.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            alarmOptions.style.opacity = '1';
+            alarmOptions.style.pointerEvents = 'auto';
+        } else {
+            alarmOptions.style.opacity = '0.5';
+            alarmOptions.style.pointerEvents = 'none';
+        }
+    });
+
+    alarmTime.addEventListener('change', (e) => {
+        if (e.target.value === 'custom') {
+            alarmCustom.classList.remove('hidden');
+        } else {
+            alarmCustom.classList.add('hidden');
+        }
+    });
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) handleFile(e.target.files[0]);
+    });
+
+    // Toast System
+    function showToast(message, type = 'error') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        
+        // Trigger reflow for animation
+        void toast.offsetWidth;
+        toast.classList.add('show');
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+
+    async function handleFile(file) {
+        if (file.type !== 'application/pdf') {
+            showToast('Bitte eine PDF-Datei hochladen.');
+            return;
+        }
+        
+        dropzone.classList.add('hidden');
+        document.getElementById('debug-area').classList.add('hidden');
+        loader.style.display = 'block';
+
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            await parsePDF(arrayBuffer);
+            showPhase2();
+            showToast('Dienstplan erfolgreich gelesen!', 'success');
+        } catch (err) {
+            console.error(err);
+            if (err.message === "Keine Schichten gefunden") {
+                showToast("Keine Schichten gefunden. Zeige Debug-Ausgabe...", "error");
+                document.getElementById('debug-area').classList.remove('hidden');
+                document.getElementById('debug-text').value = debugText;
+            } else {
+                showToast('Fehler beim Analysieren der PDF.', 'error');
+            }
+            dropzone.classList.remove('hidden');
+        } finally {
+            loader.style.display = 'none';
+        }
+    }
+
+    async function parsePDF(arrayBuffer) {
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        let allItems = [];
+        
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            
+            for (const item of textContent.items) {
+                if (item.str.trim() !== '') {
+                    allItems.push({
+                        text: item.str.trim(),
+                        t4: item.transform[4],
+                        t5: item.transform[5],
+                        page: pageNum
+                    });
+                }
+            }
+        }
+
+        debugText = allItems.map(i => `${i.text} (x:${Math.round(i.t4)}, y:${Math.round(i.t5)})`).join('\n');
+        extractShifts(allItems);
+    }
+
+    function extractShifts(allItems) {
+        parsedShifts = [];
+        
+        const fullText = allItems.map(i => i.text).join(' ');
+        const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+        const monthRegex = new RegExp(`(${monthNames.join('|')})\\s+(20\\d{2})`, 'i');
+        const mMatch = fullText.match(monthRegex);
+        if (mMatch) {
+            shiftMonth = monthNames.findIndex(m => m.toLowerCase() === mMatch[1].toLowerCase());
+            shiftYear = parseInt(mMatch[2]);
+        }
+
+        // 1. Find all time ranges
+        const times = [];
+        for (const item of allItems) {
+            const match = item.text.match(/^(\d{1,2})\s*[:*.]\s*(\d{2})\s*[-–—−]\s*(\d{1,2})\s*[:*.]\s*(\d{2})$/);
+            if (match) {
+                times.push({
+                    startH: parseInt(match[1], 10),
+                    startM: parseInt(match[2], 10),
+                    endH: parseInt(match[3], 10),
+                    endM: parseInt(match[4], 10),
+                    originalTime: item.text.replace(/[*.]/g, ':'),
+                    t4: item.t4,
+                    t5: item.t5,
+                    page: item.page,
+                    text: item.text
+                });
+            }
+        }
+
+        if (times.length === 0) throw new Error("Keine Schichten gefunden");
+
+        // 2. Determine geometric row and column axis
+        let colAxis = 't4', rowAxis = 't5';
+        if (times.length > 1) {
+            let t4Var = 0, t5Var = 0;
+            const t4Mean = times.reduce((s, t) => s + t.t4, 0) / times.length;
+            const t5Mean = times.reduce((s, t) => s + t.t5, 0) / times.length;
+            times.forEach(t => {
+                t4Var += Math.pow(t.t4 - t4Mean, 2);
+                t5Var += Math.pow(t.t5 - t5Mean, 2);
+            });
+            // The axis with higher variance across times is the row axis
+            if (t4Var > t5Var) { rowAxis = 't4'; colAxis = 't5'; }
+        }
+
+        // 3. Match each time to its Day and Code on the same row
+        for (const time of times) {
+            const rowItems = allItems.filter(i => 
+                i.page === time.page && 
+                Math.abs(i[rowAxis] - time[rowAxis]) < 10
+            );
+            
+            let day = null;
+            // First check if Day + Date is combined (e.g. "Mo 02")
+            const comboMatch = rowItems.find(i => /^(Mo|Di|Mi|Do|Fr|Sa|So|Montag|Dienstag|Mittwoch|Donnerstag|Freitag|Samstag|Sonntag)\.?\s+(\d{1,2})\b/i.test(i.text));
+            if (comboMatch) {
+                day = parseInt(comboMatch.text.match(/\d{1,2}/)[0], 10);
+            } else {
+                // Otherwise correlate independent Weekday and Date
+                const weekdayItem = rowItems.find(i => /^(Mo|Di|Mi|Do|Fr|Sa|So|Montag|Dienstag|Mittwoch|Donnerstag|Freitag|Samstag|Sonntag)\.?$/i.test(i.text));
+                const numbers = rowItems.filter(i => /^\d{1,2}$/.test(i.text));
+                
+                if (weekdayItem && numbers.length > 0) {
+                    numbers.sort((a, b) => Math.abs(a[colAxis] - weekdayItem[colAxis]) - Math.abs(b[colAxis] - weekdayItem[colAxis]));
+                    day = parseInt(numbers[0].text, 10);
+                } else if (numbers.length > 0) {
+                    day = parseInt(numbers[0].text, 10); // fallback
+                }
+            }
+            
+            if (day === null) continue;
+            
+            // Find Shift Code
+            const codes = rowItems.filter(i => /^[A-Z0-9]{2,4}$/.test(i.text) && !/^\d+$/.test(i.text));
+            let code = "Dienst";
+            if (codes.length > 0) {
+                // The code is usually horizontally closest to the time
+                codes.sort((a, b) => Math.abs(a[colAxis] - time[colAxis]) - Math.abs(b[colAxis] - time[colAxis]));
+                code = codes[0].text;
+            }
+            
+            parsedShifts.push({
+                day, code,
+                startH: time.startH, startM: time.startM,
+                endH: time.endH, endM: time.endM,
+                originalTime: time.originalTime
+            });
+        }
+
+        if (parsedShifts.length === 0) throw new Error("Keine Schichten gefunden");
+    }
+
+    function getShiftColor(startH) {
+        if (startH >= 5 && startH < 10) return 'var(--shift-early)';
+        if (startH >= 10 && startH < 14) return 'var(--shift-day)';
+        if (startH >= 14 && startH < 19) return 'var(--shift-late)';
+        if (startH >= 19 || startH < 5) return 'var(--shift-night)';
+        return 'var(--shift-default)';
+    }
+
+    function showPhase2() {
+        phase1.classList.add('hidden');
+        phase2.classList.remove('hidden');
+
+        const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+        previewMonth.textContent = `${monthNames[shiftMonth]} ${shiftYear}`;
+
+        // Get counts
+        const codeCounts = {};
+        parsedShifts.forEach(s => {
+            codeCounts[s.code] = (codeCounts[s.code] || 0) + 1;
+        });
+
+        // Load mappings
+        const savedMappings = JSON.parse(localStorage.getItem('atoss_mappings') || '{}');
+        
+        mappingContainer.innerHTML = '';
+        Object.keys(codeCounts).sort().forEach(code => {
+            const count = codeCounts[code];
+            const defaultValue = savedMappings[code] || defaultMappings[code] || '';
+            
+            const div = document.createElement('div');
+            div.className = 'mapping-item';
+            div.innerHTML = `
+                <div class="mapping-code" title="${code}">${code} <span style="font-size:10px;color:var(--text-muted)">(${count}x)</span></div>
+                <input type="text" class="form-control mapping-input" data-code="${code}" value="${defaultValue}" placeholder="Klarnamen eingeben...">
+            `;
+            mappingContainer.appendChild(div);
+        });
+
+        // Render Timeline Preview
+        timeline.innerHTML = '';
+        parsedShifts.forEach(shift => {
+            const div = document.createElement('div');
+            div.className = 'timeline-item';
+            const color = getShiftColor(shift.startH);
+            div.innerHTML = `
+                <div class="timeline-date">${shift.day}.</div>
+                <div class="timeline-time">${shift.originalTime}</div>
+                <div class="timeline-badge" style="background-color: ${color}">${shift.code}</div>
+            `;
+            timeline.appendChild(div);
+        });
+    }
+
+    exportBtn.addEventListener('click', () => {
+        // Save Settings
+        const mappings = {};
+        document.querySelectorAll('.mapping-input').forEach(input => {
+            mappings[input.dataset.code] = input.value.trim() || input.dataset.code;
+        });
+        
+        const loc = locationInput.value.trim();
+        const isAlarmActive = alarmToggle.checked;
+        let alarmMin = 120;
+        
+        if (isAlarmActive) {
+            if (alarmTime.value === 'custom') {
+                alarmMin = parseInt(alarmCustom.value) || 120;
+            } else {
+                alarmMin = parseInt(alarmTime.value);
+            }
+        }
+
+        localStorage.setItem('atoss_mappings', JSON.stringify(mappings));
+        localStorage.setItem('atoss_location', loc);
+        localStorage.setItem('atoss_alarm_active', isAlarmActive);
+        localStorage.setItem('atoss_alarm_time', alarmTime.value === 'custom' ? alarmMin : alarmTime.value);
+
+        // Generate ICS
+        const icsContent = generateICS(parsedShifts, mappings, loc, alarmMin, isAlarmActive);
+        
+        // Download
+        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+        a.download = `Dienstplan_${monthNames[shiftMonth]}_${shiftYear}.ics`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        // Button Feedback
+        const originalText = exportBtn.textContent;
+        exportBtn.textContent = '✓ Datei heruntergeladen';
+        exportBtn.style.backgroundColor = 'var(--shift-early)';
+        setTimeout(() => {
+            exportBtn.textContent = originalText;
+            exportBtn.style.backgroundColor = 'var(--primary)';
+        }, 3000);
+    });
+
+    function pad(n) { return n.toString().padStart(2, '0'); }
+
+    function generateICS(shifts, mappings, location, alarmMinutes, alarmActive) {
+        let ics = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//Atoss PWA//DE',
+            'CALSCALE:GREGORIAN'
+        ];
+
+        shifts.forEach((shift, index) => {
+            const uid = `${Date.now()}-${index}@atosspwa`;
+            const summary = mappings[shift.code] || shift.code;
+            
+            // Use local dates - ICS without Z implies floating time which is correct here
+            let startObj = new Date(shiftYear, shiftMonth, shift.day, shift.startH, shift.startM);
+            let endObj = new Date(shiftYear, shiftMonth, shift.day, shift.endH, shift.endM);
+            
+            // Overnight check
+            if (endObj <= startObj || (shift.endH === 0 && shift.endM === 0)) {
+                endObj.setDate(endObj.getDate() + 1);
+            }
+            
+            const dtstart = `${startObj.getFullYear()}${pad(startObj.getMonth()+1)}${pad(startObj.getDate())}T${pad(startObj.getHours())}${pad(startObj.getMinutes())}00`;
+            const dtend = `${endObj.getFullYear()}${pad(endObj.getMonth()+1)}${pad(endObj.getDate())}T${pad(endObj.getHours())}${pad(endObj.getMinutes())}00`;
+            const dtstamp = dtstart; // Use shift start time as stamp for simplicity
+
+            ics.push('BEGIN:VEVENT');
+            ics.push(`UID:${uid}`);
+            ics.push(`DTSTAMP:${dtstamp}`);
+            ics.push(`DTSTART:${dtstart}`);
+            ics.push(`DTEND:${dtend}`);
+            ics.push(`SUMMARY:${summary}`);
+            if (location) ics.push(`LOCATION:${location}`);
+            ics.push(`DESCRIPTION:Schicht: ${shift.code}\\nZeit: ${shift.originalTime}`);
+            
+            if (alarmActive) {
+                ics.push('BEGIN:VALARM');
+                ics.push(`TRIGGER:-PT${alarmMinutes}M`);
+                ics.push('ACTION:DISPLAY');
+                ics.push('DESCRIPTION:Dienst beginnt bald');
+                ics.push('END:VALARM');
+            }
+            
+            ics.push('END:VEVENT');
+        });
+
+        ics.push('END:VCALENDAR');
+        return ics.join('\r\n');
+    }
+</script>
+
+</body>
+</html>
