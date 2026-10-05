@@ -365,11 +365,11 @@
         <section id="phase1" class="bento-box">
             <div id="live-debug" style="background:#f1f5f9; border:1px solid #cbd5e1; padding:8px; font-size:11px; font-family:monospace; color:#334155; margin-bottom:16px; border-radius:8px; max-height:200px; overflow-y:auto; white-space:pre-wrap;">-- Debug Log --</div>
             <input type="file" id="file-input" accept="application/pdf" class="hidden">
-            <div id="dropzone" class="dropzone">
+            <label id="dropzone" class="dropzone" for="file-input" style="display: block; cursor: pointer;">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                 <p>PDF hier antippen oder ablegen</p>
                 <span>Unterstützt ATOSS / ASES Dienstpläne</span>
-            </div>
+            </label>
             
             <div style="text-align: center;">
                 <button id="open-instructions" style="background:none; border:none; color:var(--primary); font-size:14px; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:16px;">Wie exportiere ich meinen Dienstplan?</button>
@@ -626,16 +626,12 @@
         }
     });
 
-    dropzone.addEventListener('click', () => fileInput.click());
     dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
     dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
     dropzone.addEventListener('drop', (e) => {
         e.preventDefault();
         dropzone.classList.remove('dragover');
         if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
-    });
-    dropzone.addEventListener('click', () => {
-        fileInput.click();
     });
     
     function logDebug(msg) {
