@@ -364,10 +364,10 @@
         <!-- Phase 1: Upload -->
         <section id="phase1" class="bento-box">
             <input type="file" id="file-input" accept="application/pdf" class="hidden">
-            <div id="dropzone" class="dropzone" contenteditable="true" inputmode="none" style="caret-color: transparent; outline: none;">
+            <div id="dropzone" class="dropzone">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                <p style="pointer-events: none;">PDF hier auswählen oder einfügen</p>
-                <span style="pointer-events: none;">Tippe zum Auswählen oder drücke lange für "Einsetzen"</span>
+                <p>PDF hier antippen oder ablegen</p>
+                <span>Unterstützt ATOSS / ASES Dienstpläne</span>
             </div>
             
             <div style="text-align: center;">
@@ -463,8 +463,8 @@
             <li>Wähle <strong>Monatsübersicht erzeugen</strong>.</li>
             <li>Wähle das Startdatum und tippe auf <strong>Bericht erzeugen</strong>.</li>
             <li>Gehe zu deinen <strong>Mitteilungen</strong> und öffne den fertigen Bericht (PDF).</li>
-            <li>Tippe auf <strong>Teilen</strong> und dann auf <strong>Kopieren</strong> (oder speichere die Datei ab).</li>
-            <li>Gehe zurück in diese App und tippe auf dem Bildschirm auf "Einfügen / Einsetzen", oder wähle die gespeicherte Datei einfach hier aus.</li>
+            <li>Tippe auf das <strong>Teilen-Symbol</strong> und dann auf <strong>In Dateien sichern</strong> (speichere es einfach z.B. auf "Auf meinem iPhone").</li>
+            <li>Gehe zurück in diese App, tippe auf das große Upload-Feld und wähle die Datei aus!</li>
         </ol>
     </div>
 </div>
@@ -599,39 +599,9 @@
         dropzone.classList.remove('dragover');
         if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
     });
-    // Prevent typing in the contenteditable area
-    dropzone.addEventListener('keydown', (e) => e.preventDefault());
     
     fileInput.addEventListener('change', (e) => {
         if (e.target.files.length) handleFile(e.target.files[0]);
-    });
-
-    // Paste PDF directly from clipboard
-    document.addEventListener('paste', (e) => {
-        e.preventDefault(); // Prevent text from actually pasting into the div
-        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-        let found = false;
-        let debugInfo = [];
-        
-        for (let index in items) {
-            const item = items[index];
-            if (item && item.kind) {
-                debugInfo.push(`${item.kind} (${item.type})`);
-                if (item.kind === 'file') {
-                    const file = item.getAsFile();
-                    if (file) {
-                        found = true;
-                        handleFile(file);
-                        // don't break, just process the first file. actually break is safer.
-                        break;
-                    }
-                }
-            }
-        }
-        
-        if (!found) {
-            showToast('Nichts eingefügt. Zwischenablage enthält: ' + (debugInfo.length ? debugInfo.join(', ') : 'Leer'), 'error');
-        }
     });
 
     // Toast System
