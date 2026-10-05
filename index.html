@@ -638,6 +638,7 @@
     });
     
     fileInput.addEventListener('change', (e) => {
+        alert('DEBUG 0: Event gefeuert. Anzahl Dateien: ' + e.target.files.length);
         if (e.target.files.length) {
             handleFile(e.target.files[0]);
             e.target.value = ''; // Reset input so the same file can be chosen again
@@ -664,20 +665,29 @@
     }
 
     async function handleFile(file) {
-        if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
-            showToast('Bitte eine PDF-Datei hochladen.');
-            return;
-        }
-        
-        dropzone.classList.add('hidden');
-        document.getElementById('debug-area').classList.add('hidden');
-        loader.style.display = 'block';
-
         try {
+            alert('DEBUG 1: File detected\nName: ' + file.name + '\nType: ' + file.type + '\nSize: ' + file.size);
+            
+            const isPdfType = file.type && file.type.toLowerCase().includes('pdf');
+            const isPdfExt = file.name && file.name.toLowerCase().endsWith('.pdf');
+            
+            if (!isPdfType && !isPdfExt) {
+                alert('DEBUG 2: Rejected!\nKein PDF-Typ und keine PDF-Endung.');
+                showToast('Bitte eine PDF-Datei hochladen.');
+                return;
+            }
+            
+            dropzone.classList.add('hidden');
+            const debugArea = document.getElementById('debug-area');
+            if (debugArea) debugArea.classList.add('hidden');
+            loader.style.display = 'block';
+
             let buffer;
-            if (file.arrayBuffer) {
+            if (typeof file.arrayBuffer === 'function') {
+                alert('DEBUG 3: Nutze file.arrayBuffer()');
                 buffer = await file.arrayBuffer();
             } else {
+                alert('DEBUG 3: Nutze FileReader (Fallback)');
                 buffer = await new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = () => resolve(reader.result);
@@ -685,10 +695,14 @@
                     reader.readAsArrayBuffer(file);
                 });
             }
+            
+            alert('DEBUG 4: Buffer geladen (' + buffer.byteLength + ' Bytes). Starte parsePDF...');
             await parsePDF(buffer);
+            alert('DEBUG 5: parsePDF fertig!');
             showPhase2();
             showToast('Dienstplan erfolgreich gelesen!', 'success');
         } catch (err) {
+            alert('DEBUG CRASH: ' + err.message + '\n' + err.stack);
             console.error(err);
             if (err.message === "Keine Schichten gefunden") {
                 showToast("Keine Schichten gefunden. Zeige Debug-Ausgabe...", "error");
