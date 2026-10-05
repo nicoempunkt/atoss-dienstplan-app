@@ -366,9 +366,14 @@
             <input type="file" id="file-input" accept="application/pdf" class="hidden">
             <div id="dropzone" class="dropzone">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                <p>PDF hier ablegen oder tippen</p>
+                <p>PDF hier ablegen, antippen oder einfügen</p>
                 <span>Unterstützt ATOSS / ASES Dienstpläne</span>
             </div>
+            
+            <div style="text-align: center;">
+                <button id="open-instructions" style="background:none; border:none; color:var(--primary); font-size:14px; font-weight:600; text-decoration:underline; cursor:pointer; margin-top:16px;">Wie exportiere ich meinen Dienstplan?</button>
+            </div>
+            
             <div id="loader" class="loader"></div>
             
             <div id="debug-area" class="hidden" style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
@@ -446,6 +451,24 @@
     </div>
 </div>
 
+<!-- Instructions Modal -->
+<div id="instructions-modal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px;">
+    <div class="bento-box" style="width: 100%; max-height: 80vh; overflow-y: auto; margin: 0; position: relative;">
+        <button id="close-instructions" style="position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted); line-height: 1;">&times;</button>
+        <h2 style="font-size: 18px; margin-bottom: 16px;">So exportierst du den Dienstplan</h2>
+        
+        <ol style="font-size: 14px; color: var(--text-main); margin-bottom: 16px; padding-left: 20px; line-height: 1.6;">
+            <li>Öffne das <strong>Staff Center</strong>.</li>
+            <li>Gehe auf <strong>Aktionen</strong>.</li>
+            <li>Wähle <strong>Monatsübersicht erzeugen</strong>.</li>
+            <li>Wähle das Startdatum und tippe auf <strong>Bericht erzeugen</strong>.</li>
+            <li>Gehe zu deinen <strong>Mitteilungen</strong> und öffne den fertigen Bericht (PDF).</li>
+            <li>Tippe auf <strong>Teilen</strong> und dann auf <strong>Kopieren</strong> (oder speichere die Datei ab).</li>
+            <li>Gehe zurück in diese App und tippe auf dem Bildschirm auf "Einfügen / Einsetzen", oder wähle die gespeicherte Datei einfach hier aus.</li>
+        </ol>
+    </div>
+</div>
+
 <div id="toast-container"></div>
 
 <!-- PDF.js -->
@@ -486,14 +509,23 @@
     const exportBtn = document.getElementById('export-btn');
     const installBtn = document.getElementById('install-btn');
     const legalModal = document.getElementById('legal-modal');
+    const instructionsModal = document.getElementById('instructions-modal');
 
-    // Legal Modal Logic
+    // Modals Logic
     document.getElementById('open-legal').addEventListener('click', (e) => {
         e.preventDefault();
         legalModal.classList.remove('hidden');
     });
     document.getElementById('close-legal').addEventListener('click', () => {
         legalModal.classList.add('hidden');
+    });
+
+    document.getElementById('open-instructions').addEventListener('click', (e) => {
+        e.preventDefault();
+        instructionsModal.classList.remove('hidden');
+    });
+    document.getElementById('close-instructions').addEventListener('click', () => {
+        instructionsModal.classList.add('hidden');
     });
 
     // Service Worker Registration
@@ -569,6 +601,18 @@
     });
     fileInput.addEventListener('change', (e) => {
         if (e.target.files.length) handleFile(e.target.files[0]);
+    });
+
+    // Paste PDF directly from clipboard
+    document.addEventListener('paste', (e) => {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (let index in items) {
+            const item = items[index];
+            if (item.kind === 'file') {
+                const file = item.getAsFile();
+                if (file) handleFile(file);
+            }
+        }
     });
 
     // Toast System
